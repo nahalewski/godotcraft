@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3 uid="uid://d0xy9ms5o4p3r"]
+
+[ext_resource type="PackedScene" uid="uid://b8vx7kq3m2n1p" path="res://player.tscn" id="1_1"]
+[ext_resource type="PackedScene" uid="uid://c9wx8lr4n3o2q" path="res://world.tscn" id="2_2"]
+[ext_resource type="PackedScene" uid="uid://settings_menu_001" path="res://settings_menu.tscn" id="3_3"]
+[ext_resource type="Script" path="res://UIController.gd" id="4_ui"]
+
+[node name="Main" type="Node3D"]
+
+[node name="World" parent="." instance=ExtResource("2_2")]
+
+[node name="Player" parent="." instance=ExtResource("1_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 20, 32)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
+shadow_enabled = true
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="Environment"]
+current = false
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_ui")
+
+[node name="SettingsButton" type="Button" parent="UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -150.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 60.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Settings"
+
+[node name="SettingsMenu" parent="UI" instance=ExtResource("3_3")]
+visible = false
+
