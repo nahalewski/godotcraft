@@ -34,4 +34,6 @@ builds/
 *.exe
 *.pck
 *.app
+*.apk
+*.apk.idsig
 
