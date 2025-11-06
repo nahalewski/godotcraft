@@ -1,4 +1,9 @@
+res://AndroidOptimizer.gd
+res://Player.gd
+res://SettingsManager.gd
+res://SettingsMenu.gd
+res://ButtonMapper.gd
+res://ControllerManager.gd
 res://BlockManager.gd
 res://World.gd
-res://Player.gd
-res://SettingsMenu.gd
+res://FrameGen.gd

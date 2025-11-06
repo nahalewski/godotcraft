@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://settings_menu_001"]
+[gd_scene load_steps=3 format=3 uid="uid://settings_menu_001"]
 
 [ext_resource type="Script" path="res://SettingsMenu.gd" id="1_settings"]
+[ext_resource type="PackedScene" uid="uid://button_mapper_001" path="res://button_mapper.tscn" id="2_mapper"]
 
 [node name="SettingsMenu" type="Control"]
 layout_mode = 3
@@ -67,8 +68,19 @@ text = "120 FPS (High Performance)"
 [node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
+[node name="ButtonMapperButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+text = "Button Mapper"
+
+[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
 [node name="CloseButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
 text = "Close"
+
+[node name="ButtonMapper" parent="." instance=ExtResource("2_mapper")]
+visible = false
 

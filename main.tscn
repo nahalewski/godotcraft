@@ -1,9 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://d0xy9ms5o4p3r"]
+[gd_scene load_steps=9 format=3 uid="uid://d0xy9ms5o4p3r"]
 
 [ext_resource type="PackedScene" uid="uid://b8vx7kq3m2n1p" path="res://player.tscn" id="1_1"]
 [ext_resource type="PackedScene" uid="uid://c9wx8lr4n3o2q" path="res://world.tscn" id="2_2"]
 [ext_resource type="PackedScene" uid="uid://settings_menu_001" path="res://settings_menu.tscn" id="3_3"]
+[ext_resource type="PackedScene" uid="uid://crosshair_001" path="res://crosshair.tscn" id="5_5"]
+[ext_resource type="PackedScene" uid="uid://inventory_hud_001" path="res://inventory_hud.tscn" id="6_6"]
 [ext_resource type="Script" path="res://UIController.gd" id="4_ui"]
+[ext_resource type="Script" path="res://DayNightCycle.gd" id="7_daynight"]
+[ext_resource type="Script" path="res://FPSCounter.gd" id="8_fps"]
 
 [node name="Main" type="Node3D"]
 
@@ -14,7 +18,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 20, 32)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
-shadow_enabled = true
+shadow_enabled = false
+
+[node name="DayNightCycle" type="Node3D" parent="."]
+script = ExtResource("7_daynight")
 
 [node name="Environment" type="Node3D" parent="."]
 
@@ -29,6 +36,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_ui")
+
+[node name="FPSCounter" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_fps")
 
 [node name="SettingsButton" type="Button" parent="UI"]
 layout_mode = 1
@@ -45,4 +67,8 @@ text = "Settings"
 
 [node name="SettingsMenu" parent="UI" instance=ExtResource("3_3")]
 visible = false
+
+[node name="Crosshair" parent="UI" instance=ExtResource("5_5")]
+
+[node name="InventoryHUD" parent="UI" instance=ExtResource("6_6")]
 

@@ -176,6 +176,8 @@ func ensure_block_collision(static_body: StaticBody3D):
 	# Add collision shape AFTER node is in tree - this ensures physics server registers it
 	var collision_shape = CollisionShape3D.new()
 	var box_shape = BoxShape3D.new()
+	# Standard 1x1x1 collision box
+	# The collision box should be exactly 1.0 to match block size
 	box_shape.size = Vector3(1.0, 1.0, 1.0)
 	collision_shape.shape = box_shape
 	# Position at (0, 0.5, 0) so the 1x1x1 box extends from y=0 to y=1
@@ -207,11 +209,24 @@ func create_block_with_physics(block_node: Node3D, position: Vector3) -> StaticB
 	# This ensures collision works properly from the start
 	var static_body = StaticBody3D.new()
 	static_body.name = block_node.name
-	static_body.position = position
-	static_body.rotation = block_node.rotation
-	static_body.scale = block_node.scale
+	# Ensure exact integer positioning to prevent z-fighting
+	# Blocks are positioned at integer coordinates (x, y, z)
+	# The collision box is 1x1x1 and positioned at (0, 0.5, 0) relative to the block
+	# This means a block at (x, y, z) has collision from (x, y, z) to (x+1, y+1, z+1)
+	# Use consistent position calculation: position should already be exact integers from World.gd
+	# But ensure it's exactly at integer coordinates
+	var exact_x = float(int(round(position.x)))
+	var exact_y = float(int(round(position.y)))
+	var exact_z = float(int(round(position.z)))
+	static_body.position = Vector3(exact_x, exact_y, exact_z)
+	static_body.rotation = Vector3.ZERO  # No rotation to prevent alignment issues
+	static_body.scale = Vector3.ONE  # No scaling to prevent size mismatches
 	static_body.collision_layer = 1
 	static_body.collision_mask = 0
+	
+	# Copy metadata from block_node to static_body
+	if block_node.has_meta("block_type"):
+		static_body.set_meta("block_type", block_node.get_meta("block_type"))
 	
 	# NOTE: Do NOT add collision shape here - it will be added after the node is in the scene tree
 	# This ensures the physics server properly registers it
@@ -242,6 +257,24 @@ func create_block_with_physics(block_node: Node3D, position: Vector3) -> StaticB
 		child.position = Vector3.ZERO
 		child.rotation = Vector3.ZERO
 		child.scale = Vector3.ONE
+		
+		# Also reset the transform matrix to ensure no inherited transforms
+		child.transform = Transform3D.IDENTITY
+		
+		# For MeshInstance3D nodes, ensure they're properly centered
+		# Some GLTF models might have mesh geometry offset from origin
+		if child is MeshInstance3D:
+			var mesh_instance = child as MeshInstance3D
+			# Ensure mesh is centered at origin (0,0,0)
+			mesh_instance.position = Vector3.ZERO
+			mesh_instance.rotation = Vector3.ZERO
+			mesh_instance.scale = Vector3.ONE
+			mesh_instance.transform = Transform3D.IDENTITY
+			
+			# CRITICAL: Also check if the mesh itself has offset geometry
+			# If the mesh has geometry offset, we may need to adjust or ensure it's centered
+			# For now, we ensure the transform is at origin - the mesh geometry offset
+			# should be handled by the GLTF import settings, but we can't fix it here
 	
 	# Clean up the old node
 	block_node.queue_free()
@@ -398,6 +431,19 @@ func apply_texture_recursive(node: Node, texture: Texture2D):
 		var mesh_instance = node as MeshInstance3D
 		var material = StandardMaterial3D.new()
 		material.albedo_texture = texture
+		# Depth testing is enabled by default in Godot 4
+		# Set depth draw mode to always to ensure proper rendering
+		material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+		# Add polygon offset to prevent z-fighting between adjacent blocks
+		# This pushes the geometry slightly away from the camera to prevent flickering
+		material.depth_bias_enabled = true
+		material.depth_bias = 0.0001  # Increased bias to better prevent z-fighting
+		# Use polygon offset mode to push geometry away from camera
+		material.depth_bias_slope_scale = 1.0
+		# Use backface culling to improve performance and reduce rendering artifacts
+		material.cull_mode = BaseMaterial3D.CULL_BACK
+		# Disable transparency to prevent edge artifacts
+		material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 		mesh_instance.material_override = material
 	
 	for child in node.get_children():

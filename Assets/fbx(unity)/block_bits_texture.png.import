@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://sewisx2b81g5"
 path.s3tc="res://.godot/imported/block_bits_texture.png-1440dc8a1bc5c0f09821241ee99d1d61.s3tc.ctex"
+path.etc2="res://.godot/imported/block_bits_texture.png-1440dc8a1bc5c0f09821241ee99d1d61.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://Assets/fbx(unity)/block_bits_texture.png"
-dest_files=["res://.godot/imported/block_bits_texture.png-1440dc8a1bc5c0f09821241ee99d1d61.s3tc.ctex"]
+dest_files=["res://.godot/imported/block_bits_texture.png-1440dc8a1bc5c0f09821241ee99d1d61.s3tc.ctex", "res://.godot/imported/block_bits_texture.png-1440dc8a1bc5c0f09821241ee99d1d61.etc2.ctex"]
 
 [params]
 

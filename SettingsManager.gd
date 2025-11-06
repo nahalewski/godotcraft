@@ -4,7 +4,7 @@ extends Node
 
 const SETTINGS_FILE = "user://settings.cfg"
 
-var target_fps: int = 60  # Default FPS
+var target_fps: int = 120  # Default FPS (optimized for Razer Edge 5G 120Hz display)
 var settings_loaded: bool = false
 
 signal fps_changed(new_fps: int)
@@ -19,11 +19,11 @@ func load_settings():
 	var err = config.load(SETTINGS_FILE)
 	
 	if err == OK:
-		target_fps = config.get_value("performance", "target_fps", 60)
+		target_fps = config.get_value("performance", "target_fps", 120)
 		settings_loaded = true
 	else:
-		# First time - use defaults
-		target_fps = 60
+		# First time - use defaults (120 FPS for Razer Edge 5G)
+		target_fps = 120
 		settings_loaded = true
 	
 	apply_fps_limit()
@@ -43,7 +43,13 @@ func set_target_fps(fps: int):
 func apply_fps_limit():
 	# Set the FPS limit
 	Engine.max_fps = target_fps
-	print("FPS limit set to: ", target_fps)
+	# Also update FrameGen if it exists
+	var frame_gen = get_node_or_null("/root/FrameGen")
+	if frame_gen:
+		frame_gen.set_target_fps(target_fps)
+	# Only print in debug builds
+	if OS.is_debug_build():
+		print("FPS limit set to: ", target_fps)
 
 func get_target_fps() -> int:
 	return target_fps
