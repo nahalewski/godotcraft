@@ -1,16 +1,22 @@
 extends Node
 
 # BlockManager - Manages loading and caching of block models
+# Note: This is an autoload singleton, so we don't use class_name
 # Loads GLTF block models from Assets/gltf/ folder
 
 var block_cache: Dictionary = {}
 var block_scenes: Dictionary = {}
+# Cache for mesh scale factors per block type (calculated once per block type)
+var block_mesh_scales: Dictionary = {}  # BlockType -> Array of scale data: [{mesh_path: String, scale: Vector3, offset: Vector3}, ...]
+# Cache for fully-prepared template StaticBody3D nodes (ready to duplicate)
+var block_templates: Dictionary = {}  # BlockType -> StaticBody3D (template node)
 
 # Common block types for terrain generation
 enum BlockType {
 	GRASS,
 	DIRT,
 	STONE,
+	BEDROCK,
 	SAND,
 	GRAVEL,
 	WOOD,
@@ -26,6 +32,7 @@ var block_type_to_file: Dictionary = {
 	BlockType.GRASS: "grass",
 	BlockType.DIRT: "dirt",
 	BlockType.STONE: "stone",
+	BlockType.BEDROCK: "stone",  # Use stone model for bedrock (or create separate bedrock model later)
 	BlockType.SAND: "sand_A",
 	BlockType.GRAVEL: "gravel",
 	BlockType.WOOD: "wood",
@@ -41,7 +48,7 @@ func _ready():
 	preload_common_blocks()
 
 func preload_common_blocks():
-	# Preload the most commonly used blocks
+	# Preload the most commonly used blocks and pre-calculate their scales
 	var common_blocks = [
 		BlockType.GRASS,
 		BlockType.DIRT,
@@ -51,7 +58,18 @@ func preload_common_blocks():
 	]
 	
 	for block_type in common_blocks:
-		load_block(block_type)
+		var block_scene = load_block(block_type)
+		if block_scene:
+			# Pre-calculate scales during preload
+			if not block_mesh_scales.has(block_type):
+				var temp_instance = block_scene.instantiate()
+				if temp_instance:
+					remove_physics_bodies(temp_instance)
+					calculate_and_cache_mesh_scales(temp_instance, block_type)
+					temp_instance.queue_free()
+			
+			# Pre-create template StaticBody3D for fast duplication
+			create_block_template(block_type)
 
 func load_block(block_type: BlockType) -> PackedScene:
 	# Check if already cached
@@ -80,8 +98,53 @@ func load_block(block_type: BlockType) -> PackedScene:
 	block_scenes[block_type] = gltf_scene
 	return gltf_scene
 
-func get_block_instance(block_type: BlockType) -> Node3D:
+func create_block_template(block_type: BlockType) -> StaticBody3D:
+	# Create a fully-prepared template StaticBody3D that can be duplicated quickly
+	# This avoids expensive instantiation and setup for every block
+	if block_templates.has(block_type):
+		return block_templates[block_type]
+	
 	# Load the block scene if not already loaded
+	var block_scene = load_block(block_type)
+	if block_scene == null:
+		print("Error: Failed to load block scene for type: ", block_type)
+		return null
+	
+	# Pre-calculate scales if not already cached
+	if not block_mesh_scales.has(block_type):
+		var temp_instance = block_scene.instantiate()
+		if temp_instance:
+			remove_physics_bodies(temp_instance)
+			calculate_and_cache_mesh_scales(temp_instance, block_type)
+			temp_instance.queue_free()
+	
+	# Create template using the existing method
+	var block_instance = get_block_instance_slow(block_type)
+	if block_instance == null:
+		return null
+	
+	# Create StaticBody3D wrapper at origin (template position)
+	var template = create_block_with_physics(block_instance, Vector3.ZERO)
+	
+	# Manually create collision shape for template (needed for proper duplication)
+	# Create collision shape directly without needing scene tree
+	var collision_shape = CollisionShape3D.new()
+	var box_shape = BoxShape3D.new()
+	box_shape.size = Vector3(1.0, 1.0, 1.0)
+	collision_shape.shape = box_shape
+	collision_shape.position = Vector3(0, 0.5, 0)
+	collision_shape.disabled = false
+	template.add_child(collision_shape)
+	
+	# Store template for fast duplication
+	# Note: Template doesn't need to be in scene tree for duplication to work
+	# Collision shapes will be properly duplicated when we duplicate the template
+	block_templates[block_type] = template
+	
+	return template
+
+func get_block_instance_slow(block_type: BlockType) -> Node3D:
+	# Slow path: Full instantiation and setup (used for creating templates)
 	var block_scene = load_block(block_type)
 	if block_scene == null:
 		print("Error: Failed to load block scene for type: ", block_type)
@@ -94,14 +157,10 @@ func get_block_instance(block_type: BlockType) -> Node3D:
 		return null
 	
 	# CRITICAL: Check if the root node itself is a physics body
-	# GLTF imports might create RigidBody3D as the root
 	if instance is RigidBody3D:
-		print("ERROR: Block root is RigidBody3D! Converting to Node3D...")
-		# Create a new Node3D to replace it
 		var new_root = Node3D.new()
 		new_root.name = instance.name
 		new_root.transform = instance.transform
-		# Move all children
 		var children = []
 		for child in instance.get_children():
 			children.append(child)
@@ -112,7 +171,6 @@ func get_block_instance(block_type: BlockType) -> Node3D:
 		instance.queue_free()
 		instance = new_root
 	elif instance is CharacterBody3D or instance is Area3D:
-		print("ERROR: Block root is ", instance.get_class(), "! Converting to Node3D...")
 		var new_root = Node3D.new()
 		new_root.name = instance.name
 		new_root.transform = instance.transform
@@ -126,14 +184,67 @@ func get_block_instance(block_type: BlockType) -> Node3D:
 		instance.queue_free()
 		instance = new_root
 	
-	# Remove any physics bodies that might cause blocks to fall
+	# Remove any physics bodies
 	remove_physics_bodies(instance)
 	
-	# Apply texture if available
+	# Apply texture
 	apply_texture_to_block(instance)
 	
-	# Return the instance - physics will be set up after adding to scene
 	return instance
+
+func get_block_instance(block_type: BlockType) -> Node3D:
+	# Fast path: Use template if available, otherwise fall back to slow path
+	# Note: This returns a Node3D, but templates are StaticBody3D
+	# We'll handle this in create_block_with_physics_fast
+	
+	# Ensure template exists
+	if not block_templates.has(block_type):
+		create_block_template(block_type)
+	
+	# Return null here - we'll use get_block_fast() instead which returns StaticBody3D
+	return null
+
+func get_block_fast(block_type: BlockType, position: Vector3) -> StaticBody3D:
+	# Fast path: Duplicate from template (much faster than instantiating)
+	if not block_templates.has(block_type):
+		create_block_template(block_type)  # Create template synchronously
+	
+	var template = block_templates.get(block_type)
+	if template == null:
+		# Fallback to slow path
+		var block_instance = get_block_instance_slow(block_type)
+		if block_instance == null:
+			return null
+		return create_block_with_physics(block_instance, position)
+	
+	# Duplicate the template (fast operation - copies structure without full instantiation)
+	# Use regular duplicate (DUPLICATE_USE_INSTANCING might not work properly for StaticBody3D)
+	var duplicate = template.duplicate(0) as StaticBody3D
+	if duplicate == null:
+		# Fallback to slow path if duplication fails
+		var block_instance = get_block_instance_slow(block_type)
+		if block_instance == null:
+			return null
+		return create_block_with_physics(block_instance, position)
+	
+	# Set position and metadata
+	duplicate.position = position
+	if template.has_meta("block_type"):
+		duplicate.set_meta("block_type", template.get_meta("block_type"))
+	
+	# Reset name (will be set by caller)
+	duplicate.name = "Block_Template"
+	
+	# Ensure collision layers are set correctly
+	duplicate.collision_layer = 1
+	duplicate.collision_mask = 0
+	
+	# Ensure all collision shapes are properly configured
+	for child in duplicate.get_children():
+		if child is CollisionShape3D:
+			child.disabled = false
+	
+	return duplicate
 
 func remove_physics_bodies(node: Node):
 	# Remove any RigidBody3D, CharacterBody3D, or Area3D that might cause physics
@@ -209,16 +320,13 @@ func create_block_with_physics(block_node: Node3D, position: Vector3) -> StaticB
 	# This ensures collision works properly from the start
 	var static_body = StaticBody3D.new()
 	static_body.name = block_node.name
-	# Ensure exact integer positioning to prevent z-fighting
-	# Blocks are positioned at integer coordinates (x, y, z)
+	# Ensure exact integer positioning to prevent z-fighting (best practice)
+	# Blocks are positioned at integer grid coordinates: Vector3i * BLOCK_SIZE
 	# The collision box is 1x1x1 and positioned at (0, 0.5, 0) relative to the block
 	# This means a block at (x, y, z) has collision from (x, y, z) to (x+1, y+1, z+1)
-	# Use consistent position calculation: position should already be exact integers from World.gd
-	# But ensure it's exactly at integer coordinates
-	var exact_x = float(int(round(position.x)))
-	var exact_y = float(int(round(position.y)))
-	var exact_z = float(int(round(position.z)))
-	static_body.position = Vector3(exact_x, exact_y, exact_z)
+	# Snap position to grid to ensure exact integer coordinates (prevents float drift)
+	const BLOCK_SIZE = 1.0
+	static_body.position = position.snapped(Vector3(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
 	static_body.rotation = Vector3.ZERO  # No rotation to prevent alignment issues
 	static_body.scale = Vector3.ONE  # No scaling to prevent size mismatches
 	static_body.collision_layer = 1
@@ -260,26 +368,82 @@ func create_block_with_physics(block_node: Node3D, position: Vector3) -> StaticB
 		
 		# Also reset the transform matrix to ensure no inherited transforms
 		child.transform = Transform3D.IDENTITY
-		
-		# For MeshInstance3D nodes, ensure they're properly centered
-		# Some GLTF models might have mesh geometry offset from origin
-		if child is MeshInstance3D:
-			var mesh_instance = child as MeshInstance3D
-			# Ensure mesh is centered at origin (0,0,0)
-			mesh_instance.position = Vector3.ZERO
-			mesh_instance.rotation = Vector3.ZERO
-			mesh_instance.scale = Vector3.ONE
-			mesh_instance.transform = Transform3D.IDENTITY
-			
-			# CRITICAL: Also check if the mesh itself has offset geometry
-			# If the mesh has geometry offset, we may need to adjust or ensure it's centered
-			# For now, we ensure the transform is at origin - the mesh geometry offset
-			# should be handled by the GLTF import settings, but we can't fix it here
+	
+	# Apply cached mesh scales (fast - no recalculation)
+	apply_cached_scales_fast(static_body, block_node.get_meta("block_type") if block_node.has_meta("block_type") else BlockType.GRASS)
 	
 	# Clean up the old node
 	block_node.queue_free()
 	
 	return static_body
+
+func apply_cached_scales_fast(node: Node, block_type: BlockType):
+	# Fast scaling using pre-calculated cache - no expensive AABB calculations
+	# Scales are pre-calculated when blocks are first loaded, so this is just applying cached values
+	var scale_data_array = block_mesh_scales.get(block_type, [])
+	if scale_data_array.is_empty():
+		# Fallback: should never happen if pre-caching works, but handle gracefully
+		print("Warning: No cached scales for block type ", block_type, ", calculating now (slow!)")
+		calculate_and_cache_mesh_scales(node, block_type)
+		scale_data_array = block_mesh_scales.get(block_type, [])
+	
+	# Apply cached scales using index-based traversal (fast - just setting values)
+	var mesh_index = 0
+	apply_scales_by_index_recursive(node, scale_data_array, mesh_index)
+	
+func apply_scales_by_index_recursive(node: Node, scale_data_array: Array, mesh_index: int) -> int:
+	# Apply cached scales by traversing in the same order they were calculated
+	if node is MeshInstance3D:
+		if mesh_index < scale_data_array.size():
+			var scale_data = scale_data_array[mesh_index]
+			if scale_data.has("scale") and scale_data.has("offset"):
+				node.scale = scale_data.scale
+				node.position = scale_data.offset
+			mesh_index += 1
+	
+	# Recursively process all children
+	for child in node.get_children():
+		mesh_index = apply_scales_by_index_recursive(child, scale_data_array, mesh_index)
+	
+	return mesh_index
+
+func calculate_and_cache_mesh_scales(node: Node, block_type: BlockType):
+	# Calculate scales once per block type and cache them
+	var scale_data_array: Array = []
+	collect_mesh_scales_recursive(node, scale_data_array)
+	block_mesh_scales[block_type] = scale_data_array
+
+func collect_mesh_scales_recursive(node: Node, scale_data_array: Array):
+	# Collect scale data for all meshes (called once per block type)
+	if node is MeshInstance3D:
+		var mesh_instance = node as MeshInstance3D
+		if mesh_instance.mesh:
+			# Get AABB from the mesh resource directly
+			var aabb = mesh_instance.mesh.get_aabb()
+			if aabb.size.length() > 0.001:  # Avoid division by zero
+				# Calculate scale needed to fit mesh in 1.0x1.0x1.0 box
+				var mesh_size = aabb.size
+				
+				# Use uniform scale based on largest dimension to ensure it fits perfectly
+				var max_dimension = max(mesh_size.x, mesh_size.y, mesh_size.z)
+				if max_dimension > 0.001:
+					var uniform_scale = 1.0 / max_dimension
+					var scale = Vector3(uniform_scale, uniform_scale, uniform_scale)
+					
+					# Center the mesh at origin (compensate for AABB center offset)
+					var aabb_center = aabb.get_center()
+					var offset = -aabb_center * uniform_scale
+					
+					# Cache the scale data
+					scale_data_array.append({"scale": scale, "offset": offset})
+				else:
+					scale_data_array.append({"scale": Vector3.ONE, "offset": Vector3.ZERO})
+			else:
+				scale_data_array.append({"scale": Vector3.ONE, "offset": Vector3.ZERO})
+	
+	# Recursively process all children
+	for child in node.get_children():
+		collect_mesh_scales_recursive(child, scale_data_array)
 
 func setup_block_physics(block_node: Node3D):
 	# If the root is already a StaticBody3D with collision, we're done
@@ -417,14 +581,20 @@ func ensure_collision_shape(static_body: StaticBody3D):
 		static_body.collision_mask = 0
 
 
-func apply_texture_to_block(block_instance: Node3D):
-	# Try to load and apply the block texture
+func get_texture_for_block_type(block_type: BlockType) -> Texture2D:
+	# Get the texture for a block type (used for mesh merging)
 	var texture_path = "res://Textures/block_bits_texture.png"
 	if ResourceLoader.exists(texture_path):
 		var texture = load(texture_path) as Texture2D
-		if texture != null:
-			# Apply texture to all MeshInstance3D nodes in the block
-			apply_texture_recursive(block_instance, texture)
+		return texture
+	return null
+
+func apply_texture_to_block(block_instance: Node3D):
+	# Try to load and apply the block texture
+	var texture = get_texture_for_block_type(BlockType.STONE)  # Use default texture
+	if texture != null:
+		# Apply texture to all MeshInstance3D nodes in the block
+		apply_texture_recursive(block_instance, texture)
 
 func apply_texture_recursive(node: Node, texture: Texture2D):
 	if node is MeshInstance3D:

@@ -1,7 +1,7 @@
 res://crosshair.tscn::4b7264253096feb01e35bf6779201107::1762449575::res://.godot/exported/133200997/export-2f20742d50d6cc72a68802cb956cc3c0-crosshair.scn
 res://inventory_hud.tscn::458eadfbafcbd3067c03e85637c62ef1::1762449460::res://.godot/exported/133200997/export-728bd4c0ff4bc6a5f0d0a0994c717f80-inventory_hud.scn
 res://main.tscn::1339d011d759d0609df3fc8abd620fc3::1762451780::res://.godot/exported/133200997/export-3070c538c03ee49b7677ff960a3f5195-main.scn
-res://player.tscn::efaf609952d56d93fe16121b671f8f28::1762450192::res://.godot/exported/133200997/export-36a25e342948d0ceacc500772b5412b3-player.scn
-res://settings_menu.tscn::f1d9764f2a6e094420a2b99babe73454::1762453926::res://.godot/exported/133200997/export-ed75ec62f7a09791727b81987409fab8-settings_menu.scn
+res://player.tscn::6ddb1cec29106c2aff6bbcbb6fc29722::1762499397::res://.godot/exported/133200997/export-36a25e342948d0ceacc500772b5412b3-player.scn
+res://settings_menu.tscn::9c5731988dd5185273498b6b5a3b3c31::1762501448::res://.godot/exported/133200997/export-ed75ec62f7a09791727b81987409fab8-settings_menu.scn
 res://world.tscn::072c6c6f9b8acbffb1f54af2bdf52288::1762449460::res://.godot/exported/133200997/export-76e0adcbc83681695885bae615f516ae-world.scn
 res://button_mapper.tscn::fde8bb28da72ccbca409e4c088e6c4ff::1762454107::res://.godot/exported/133200997/export-b2fa6c69d29518bc2b3717f643f81597-button_mapper.scn

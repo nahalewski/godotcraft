@@ -80,7 +80,9 @@ func get_slot(slot: int) -> Dictionary:
 func get_block_type_from_name(block_name: String) -> BlockManager.BlockType:
 	# Convert block name to BlockType
 	var name_lower = block_name.to_lower()
-	if name_lower.contains("grass"):
+	if name_lower.contains("bedrock"):
+		return BlockManager.BlockType.BEDROCK
+	elif name_lower.contains("grass"):
 		return BlockManager.BlockType.GRASS
 	elif name_lower.contains("dirt"):
 		return BlockManager.BlockType.DIRT

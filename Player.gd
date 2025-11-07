@@ -10,6 +10,8 @@ const GAMEPAD_LOOK_SENSITIVITY = 2.5  # Optimized for Razer Kishi
 # Get the gravity from the project settings to be synced with RigidBody nodes
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
+const BlockManagerScript := preload("res://BlockManager.gd")
+
 @onready var camera: Camera3D = $Camera3D
 
 const MINE_DISTANCE = 5.0  # Maximum distance to mine blocks
@@ -264,6 +266,11 @@ func try_mine_block():
 	if block_type == null:
 		return
 	
+	# Check if block is bedrock (not mineable)
+	if block_type == BlockManagerScript.BlockType.BEDROCK:
+		# Bedrock cannot be mined
+		return
+	
 	# Round position to match how blocks are stored
 	var rounded_pos = Vector3(
 		round(block_pos.x),
@@ -277,7 +284,7 @@ func try_mine_block():
 			# Create mining effect (visual: shrink and spin)
 			create_mining_effect(block_type, block_pos)
 
-func create_mining_effect(block_type: BlockManager.BlockType, position: Vector3):
+func create_mining_effect(block_type: BlockManagerScript.BlockType, position: Vector3):
 	# Create a mining effect node
 	var effect = Node3D.new()
 	var script = load("res://MiningEffect.gd")

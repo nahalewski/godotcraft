@@ -24,7 +24,10 @@ func optimize_for_android():
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	
 	# Optimize rendering for mobile
-	RenderingServer.viewport_set_debug_draw(get_viewport().get_viewport_rid(), RenderingServer.VIEWPORT_DEBUG_DRAW_DISABLED)
+	# Get the main viewport safely
+	var main_viewport = get_tree().root.get_viewport()
+	if main_viewport:
+		RenderingServer.viewport_set_debug_draw(main_viewport.get_viewport_rid(), RenderingServer.VIEWPORT_DEBUG_DRAW_DISABLED)
 	
 	# Reduce physics update rate slightly for better performance
 	Engine.physics_ticks_per_second = 60

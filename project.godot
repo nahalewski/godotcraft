@@ -31,8 +31,6 @@ window/size/viewport_height=810
 window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
-window/vsync/vsync_mode=1
 
 [input]
 

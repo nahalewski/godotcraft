@@ -21,66 +21,128 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.7)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -250.0
-offset_right = 200.0
-offset_bottom = 250.0
+offset_left = -250.0
+offset_top = -300.0
+offset_right = 250.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "Performance Settings"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CurrentFPSLabel" type="Label" parent="VBoxContainer"]
+[node name="CurrentFPSLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "Current FPS: 60 FPS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="FPS30Button" type="Button" parent="VBoxContainer"]
+[node name="FPSLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
+text = "Target FPS:"
+horizontal_alignment = 1
+
+[node name="FPS30Button" type="Button" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
 text = "30 FPS (Low Performance)"
 
-[node name="FPS60Button" type="Button" parent="VBoxContainer"]
+[node name="FPS60Button" type="Button" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 60)
 text = "60 FPS (Balanced)"
 
-[node name="FPS120Button" type="Button" parent="VBoxContainer"]
+[node name="FPS120Button" type="Button" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 60)
 text = "120 FPS (High Performance)"
 
-[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonMapperButton" type="Button" parent="VBoxContainer"]
+[node name="PerformanceOptions" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
+
+[node name="FSRLabel" type="Label" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+text = "FSR Upscaling:"
+horizontal_alignment = 1
+
+[node name="FSRLowButton" type="Button" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+text = "Low (75% - Best Performance)"
+
+[node name="FSRMediumButton" type="Button" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+text = "Medium (90% - Balanced)"
+
+[node name="FSRHighButton" type="Button" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+text = "High (100% - Best Quality)"
+
+[node name="HSeparator3" type="HSeparator" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+
+[node name="OcclusionCullingCheckbox" type="CheckBox" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+text = "Occlusion Culling (Hide hidden blocks)"
+button_pressed = true
+
+[node name="AdaptiveQualityCheckbox" type="CheckBox" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+text = "Adaptive Quality (Auto-adjust for FPS)"
+button_pressed = false
+
+[node name="HSeparator4" type="HSeparator" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+
+[node name="RenderDistanceLabel" type="Label" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+text = "Render Distance: 2 chunks"
+horizontal_alignment = 1
+
+[node name="RenderDistanceSlider" type="HSlider" parent="ScrollContainer/VBoxContainer/PerformanceOptions"]
+layout_mode = 2
+min_value = 1.0
+max_value = 8.0
+step = 1.0
+value = 2.0
+
+[node name="HSeparator5" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonMapperButton" type="Button" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
 text = "Button Mapper"
 
-[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator6" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="CloseButton" type="Button" parent="VBoxContainer"]
+[node name="CloseButton" type="Button" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
 text = "Close"
 
 [node name="ButtonMapper" parent="." instance=ExtResource("2_mapper")]
 visible = false
-

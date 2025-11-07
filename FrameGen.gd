@@ -60,8 +60,8 @@ func adjust_quality_based_on_performance():
 
 func apply_quality_settings():
 	# Apply quality settings based on current quality level
-	# Get the main viewport
-	var viewport = get_viewport()
+	# Get the main viewport safely
+	var viewport = get_tree().root.get_viewport() if get_tree() else null
 	if not viewport:
 		return
 	
